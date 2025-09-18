@@ -4,12 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Astro Trading Compass</title>
+    <link rel="manifest" href="/manifest.json">
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap');
         body {
             font-family: 'Inter', sans-serif;
-            background: #111827;
+            background: #0f172a;
             color: #E5E7EB;
         }
         .container {
@@ -18,7 +19,7 @@
             padding: 2rem;
         }
         .gradient-text {
-            background-image: linear-gradient(to right, #6EE7B7, #3B82F6);
+            background-image: linear-gradient(to right, #a7f3d0, #67e8f9, #3b82f6);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
         }
@@ -43,19 +44,20 @@
             width: 100%;
             height: 100%;
             overflow: auto;
-            background-color: rgba(0,0,0,0.4);
+            background-color: rgba(0,0,0,0.6);
+            backdrop-filter: blur(5px);
             justify-content: center;
             align-items: center;
         }
         .modal-content {
             background-color: #1f2937;
             margin: auto;
-            padding: 20px;
-            border: 1px solid #888;
+            padding: 24px;
             border-radius: 1rem;
-            width: 80%;
+            width: 90%;
             max-width: 500px;
             position: relative;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
         }
         .close-btn {
             color: #aaa;
@@ -66,66 +68,205 @@
             font-weight: bold;
             cursor: pointer;
         }
+        .strategy-card {
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+        }
+        .strategy-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px rgba(0,0,0,0.2);
+        }
+        .strategy-card h3 {
+            font-size: 1.25rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+        }
+        .strategy-card h3 svg {
+            margin-right: 0.5rem;
+        }
+        .date-cell {
+            padding: 0.5rem;
+            text-align: center;
+            cursor: pointer;
+            border-radius: 0.5rem;
+            transition: background-color 0.2s;
+            position: relative;
+        }
+        .date-cell.today {
+            background-color: #3b82f6;
+            color: #fff;
+        }
+        .date-cell.active {
+            background-color: #6ee7b7;
+            color: #111827;
+            font-weight: 700;
+        }
+        .date-cell.reversal {
+            background-color: #b91c1c;
+            color: white;
+        }
+        .date-cell.trayodashi {
+            background-color: #8b5cf6;
+            color: white;
+        }
+        .date-cell.pournima {
+            background-color: #3b82f6;
+            color: white;
+        }
+        .date-cell.amavasya {
+            background-color: #1f2937;
+            color: white;
+        }
+        .date-cell:not(.today):not(.active):hover {
+            background-color: #1f2937;
+        }
+        .date-cell .event-indicator {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            position: absolute;
+            bottom: 2px;
+            right: 2px;
+        }
+        .tab-button {
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            background-color: #374151;
+            color: #D1D5DB;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+        .tab-button.active {
+            background-color: #4b5563;
+            color: #fff;
+            box-shadow: inset 0 2px 4px 0 rgba(0, 0, 0, 0.2);
+        }
+        .mini-strategy-card {
+            border-radius: 0.5rem;
+            padding: 0.75rem;
+            background-color: #1f2937;
+            border: 1px solid #374151;
+            margin-bottom: 0.5rem;
+        }
     </style>
 </head>
-<body class="bg-gray-900 flex items-center justify-center min-h-screen p-4 sm:p-8">
+<body class="bg-gray-900 min-h-screen flex flex-col items-center p-4">
 
     <!-- Modal for messages -->
     <div id="alert-modal" class="modal">
         <div class="modal-content">
             <span class="close-btn" onclick="document.getElementById('alert-modal').style.display='none'">&times;</span>
-            <p id="alert-message" class="text-white text-center"></p>
+            <p id="alert-message" class="text-white text-center text-lg"></p>
         </div>
     </div>
 
-<div class="container bg-gray-800 rounded-2xl shadow-2xl p-6 sm:p-10 space-y-8">
-    
-    <!-- Header Section -->
-    <header class="text-center space-y-2">
-        <h1 class="text-4xl sm:text-5xl font-extrabold gradient-text">Astro Trading Compass</h1>
-        <p class="text-gray-400 text-lg">Daily Market Strategies based on Celestial Events</p>
-    </header>
-
-    <!-- App Description -->
-    <div class="text-center text-gray-300">
-        <p>Select a date to receive real-time strategies and market analysis based on your astrological trading plan. 🪐</p>
-    </div>
-
-    <!-- Input and Result Section -->
-    <main class="space-y-6">
-        <div class="flex flex-col sm:flex-row items-center justify-center space-y-4 sm:space-y-0 sm:space-x-4">
-            <input type="date" id="date-input" class="bg-gray-700 text-gray-300 rounded-xl p-3 sm:w-1/2 focus:outline-none focus:ring-2 focus:ring-blue-500">
-            <button id="calculate-btn" class="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-xl shadow-lg transition duration-300 ease-in-out transform hover:scale-105">
-                Get Strategies
-            </button>
-        </div>
+    <div class="container bg-gray-800 rounded-2xl shadow-2xl p-6 sm:p-10 space-y-8 flex flex-col items-center">
         
-        <div id="results" class="bg-gray-700 rounded-xl p-6 sm:p-8 space-y-4 hidden">
-            <h2 class="text-2xl font-semibold text-white">Analysis for <span id="display-date"></span></h2>
-            
-            <div id="strategy-list" class="space-y-4">
-                <!-- Strategies will be dynamically generated here -->
+        <!-- Header Section -->
+        <header class="text-center space-y-2">
+            <h1 class="text-4xl sm:text-5xl font-extrabold gradient-text">Astro Trading Compass</h1>
+            <p class="text-gray-400 text-lg">Daily Market Strategies based on Celestial Events</p>
+        </header>
+
+        <!-- Tabs for Daily vs Upcoming Events -->
+        <div class="flex space-x-2 w-full justify-center">
+            <button id="daily-compass-tab" class="tab-button active">Daily Compass</button>
+            <button id="upcoming-events-tab" class="tab-button">Upcoming Events</button>
+        </div>
+
+        <!-- Daily Compass Content -->
+        <div id="daily-compass-view">
+            <!-- Calendar and Controls -->
+            <div class="w-full bg-gray-700 rounded-xl p-4 shadow-lg">
+                <div class="flex justify-between items-center mb-4">
+                    <button id="prev-month" class="text-gray-400 hover:text-white transition duration-200">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+                        </svg>
+                    </button>
+                    <h2 id="current-month-year" class="text-xl font-bold text-white"></h2>
+                    <button id="next-month" class="text-gray-400 hover:text-white transition duration-200">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                        </svg>
+                    </button>
+                </div>
+                <div class="grid grid-cols-7 text-center font-semibold text-gray-400">
+                    <span>Sun</span>
+                    <span>Mon</span>
+                    <span>Tue</span>
+                    <span>Wed</span>
+                    <span>Thu</span>
+                    <span>Fri</span>
+                    <span>Sat</span>
+                </div>
+                <div id="calendar-grid" class="grid grid-cols-7 gap-2 mt-2 text-gray-300">
+                    <!-- Calendar days will be rendered here -->
+                </div>
+            </div>
+        
+            <div id="loading-spinner" class="hidden flex justify-center items-center p-4">
+                <div class="spinner"></div>
+                <span class="ml-2 text-gray-300">Calculating strategies...</span>
             </div>
 
-            <div id="important-degrees-list" class="space-y-2 text-gray-400">
-                <p class="font-semibold text-white">Important Astrological Degrees:</p>
-                <!-- Important degrees will be populated here by JS -->
+            <!-- Strategy Display Section -->
+            <main id="results" class="space-y-6 w-full hidden">
+                <div id="strategy-list" class="space-y-4">
+                    <!-- Strategies will be dynamically generated here -->
+                </div>
+            </main>
+        </div>
+
+        <!-- Upcoming Events Content -->
+        <div id="upcoming-events-view" class="w-full" style="display: none;">
+            <div id="upcoming-loading-spinner" class="hidden flex justify-center items-center p-4">
+                <div class="spinner"></div>
+                <span class="ml-2 text-gray-300">Fetching upcoming events...</span>
+            </div>
+            <div id="upcoming-list" class="space-y-4">
+                <!-- Upcoming events will be rendered here -->
             </div>
         </div>
-    </main>
-</div>
+    </div>
 
 <script>
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('/service-worker.js')
+                .then(registration => {
+                    console.log('Service Worker registered with scope:', registration.scope);
+                })
+                .catch(error => {
+                    console.log('Service Worker registration failed:', error);
+                });
+        });
+    }
+
     document.addEventListener('DOMContentLoaded', () => {
-        const calculateBtn = document.getElementById('calculate-btn');
-        const dateInput = document.getElementById('date-input');
+        const calendarGrid = document.getElementById('calendar-grid');
+        const currentMonthYearEl = document.getElementById('current-month-year');
+        const prevMonthBtn = document.getElementById('prev-month');
+        const nextMonthBtn = document.getElementById('next-month');
         const resultsDiv = document.getElementById('results');
-        const displayDateSpan = document.getElementById('display-date');
         const strategyListDiv = document.getElementById('strategy-list');
-        const importantDegreesList = document.getElementById('important-degrees-list');
+        const loadingSpinner = document.getElementById('loading-spinner');
         const alertModal = document.getElementById('alert-modal');
         const alertMessage = document.getElementById('alert-message');
+        const dailyCompassTab = document.getElementById('daily-compass-tab');
+        const upcomingEventsTab = document.getElementById('upcoming-events-tab');
+        const dailyCompassView = document.getElementById('daily-compass-view');
+        const upcomingEventsView = document.getElementById('upcoming-events-view');
+        const upcomingLoadingSpinner = document.getElementById('upcoming-loading-spinner');
+        const upcomingListDiv = document.getElementById('upcoming-list');
 
+        const today = new Date();
+        let currentMonth = today.getMonth();
+        let currentYear = today.getFullYear();
+        
         const showMessage = (message) => {
             alertMessage.textContent = message;
             alertModal.style.display = 'flex';
@@ -138,13 +279,6 @@
             180, 360
         ];
         
-        importantDegrees.forEach(deg => {
-            const span = document.createElement('span');
-            span.textContent = `${deg}° `;
-            span.className = 'inline-block px-2 py-1 bg-gray-600 rounded-full text-xs text-gray-300 m-1';
-            importantDegreesList.appendChild(span);
-        });
-
         const baseDate = new Date('2025-03-20');
         const apiKey = "AIzaSyAiRHTLuvHK6gsSdQQCHT4HkkmeeF942UY"; 
 
@@ -171,13 +305,22 @@
             }
         };
 
-        const generateStrategySection = (title, content) => {
+        const generateStrategyCard = (title, content, iconHtml, color) => {
             const div = document.createElement('div');
-            div.className = 'bg-gray-800 rounded-lg p-4';
+            div.className = `strategy-card bg-${color}-900 bg-opacity-50 border border-${color}-800 text-${color}-300 p-6 shadow-lg transform transition duration-300 hover:scale-105`;
             div.innerHTML = `
-                <h3 class="text-xl font-semibold text-white">${title}</h3>
-                <p class="text-gray-300 text-sm mt-2">${content}</p>
+                <h3 class="text-xl font-bold mb-3 flex items-center text-white">
+                    ${iconHtml}
+                    ${title}
+                </h3>
+                <p class="text-sm">${content}</p>
             `;
+            return div;
+        };
+        const generateMiniStrategyCard = (title, content, color) => {
+            const div = document.createElement('div');
+            div.className = `mini-strategy-card bg-${color}-900 bg-opacity-30 border border-${color}-800`;
+            div.innerHTML = `<h5 class="font-semibold text-lg text-white">${title}</h5><p class="text-sm mt-1 text-gray-300">${content}</p>`;
             return div;
         };
 
@@ -189,10 +332,7 @@
         };
         
         const moonMarsConjunctionDates = ['2025-02-09', '2025-06-29', '2025-08-26'];
-
-        const isMoonMarsConjunction = (dateStr) => {
-            return moonMarsConjunctionDates.includes(dateStr);
-        };
+        const isMoonMarsConjunction = (dateStr) => moonMarsConjunctionDates.includes(dateStr);
 
         const trayodashiDates = [
             '2025-01-11', '2025-01-26', '2025-02-09', '2025-02-25', '2025-03-11', '2025-03-27',
@@ -200,65 +340,70 @@
             '2025-07-07', '2025-07-22', '2025-08-06', '2025-08-20', '2025-09-05', '2025-09-18', '2025-09-19',
             '2025-10-04', '2025-10-05', '2025-10-18', '2025-11-03', '2025-11-17', '2025-12-02', '2025-12-16'
         ];
-
-        const isTrayodashi = (dateStr) => {
-            return trayodashiDates.includes(dateStr);
-        };
+        const isTrayodashi = (dateStr) => trayodashiDates.includes(dateStr);
 
         const pournimaDates = [
             '2025-01-13', '2025-02-12', '2025-03-13', '2025-04-12', '2025-05-11', '2025-06-10',
             '2025-07-10', '2025-08-08', '2025-09-07', '2025-10-06', '2025-11-04', '2025-12-04'
         ];
-
-        const isPournima = (dateStr) => {
-            return pournimaDates.includes(dateStr);
-        };
+        const isPournima = (dateStr) => pournimaDates.includes(dateStr);
 
         const amavasyaDates = [
             '2025-01-28', '2025-02-27', '2025-03-28', '2025-04-26', '2025-05-26', '2025-06-25',
             '2025-07-24', '2025-08-23', '2025-09-21', '2025-10-21', '2025-11-20', '2025-12-20'
         ];
-        
-        const isAmavasya = (dateStr) => {
-            return amavasyaDates.includes(dateStr);
+        const isAmavasya = (dateStr) => amavasyaDates.includes(dateStr);
+
+        const calculateDegree = (date) => {
+            const daysDifference = Math.ceil((date.getTime() - baseDate.getTime()) / (1000 * 3600 * 24));
+            const year = date.getFullYear();
+            const isLeapYear = (year % 4 === 0 && year % 100 !== 0) || (year % 400 === 0);
+            const totalDaysInYear = isLeapYear ? 366 : 365.25;
+            const calculatedDegree = (daysDifference % totalDaysInYear) * (360 / totalDaysInYear);
+            return parseFloat(calculatedDegree.toFixed(2));
         };
 
-        calculateBtn.addEventListener('click', async () => {
-            const selectedDateStr = dateInput.value;
-            
-            if (!selectedDateStr) {
-                showMessage('Please select a date.');
-                return;
+        const isSignificantDegreeDay = (date) => {
+            const yesterday = new Date(date);
+            yesterday.setDate(date.getDate() - 1);
+            const degreeToday = calculateDegree(date);
+            const degreeYesterday = calculateDegree(yesterday);
+            for (const deg of importantDegrees) {
+                if ((degreeYesterday < deg && degreeToday >= deg) || (degreeYesterday > deg && degreeToday <= deg)) {
+                    return true;
+                }
             }
+            return false;
+        };
 
-            const selectedDate = new Date(selectedDateStr);
-            const displayDate = new Date(selectedDate);
-            displayDateSpan.textContent = displayDate.toDateString();
-            strategyListDiv.innerHTML = '';
-            resultsDiv.classList.remove('hidden');
-
-            // Show loading spinners for all sections
-            strategyListDiv.innerHTML = `
-                <div id="degrees-loader" class="flex justify-center items-center p-4">
-                    <div class="spinner"></div>
-                    <span class="ml-2">Calculating degrees...</span>
-                </div>
-                <div id="astro-loader" class="flex justify-center items-center p-4">
-                    <div class="spinner"></div>
-                    <span class="ml-2">Analyzing celestial events...</span>
-                </div>
-                <div id="sentiment-loader" class="flex justify-center items-center p-4">
-                    <div class="spinner"></div>
-                    <span class="ml-2">Analyzing market sentiment...</span>
-                </div>
-            `;
+        const getStrategies = async (selectedDateStr) => {
+            if (loadingSpinner) loadingSpinner.classList.remove('hidden');
+            if (resultsDiv) resultsDiv.classList.add('hidden');
+            if (strategyListDiv) strategyListDiv.innerHTML = '';
             
-            // Calculate today's degree and yesterday's degree to check for crossing
-            let daysDifferenceToday = Math.ceil((selectedDate.getTime() - baseDate.getTime()) / (1000 * 3600 * 24));
+            const selectedDate = new Date(selectedDateStr);
+            
+            // Re-render header to avoid duplicates
+            const existingHeader = document.querySelector('#results h2');
+            if(existingHeader) existingHeader.remove();
+            
+            const header = document.createElement('h2');
+            header.className = 'text-2xl font-semibold text-white mt-8 mb-4';
+            header.innerHTML = `Analysis for <span id="display-date">${selectedDate.toDateString()}</span>`;
+            if(resultsDiv) resultsDiv.insertBefore(header, strategyListDiv);
+            if(resultsDiv) resultsDiv.classList.remove('hidden');
+            
+            // --- Planetary Degree Strategy ---
             const yesterday = new Date(selectedDate);
             yesterday.setDate(yesterday.getDate() - 1);
+            const yesterdayStr = yesterday.toISOString().split('T')[0];
+            const tomorrow = new Date(selectedDate);
+            tomorrow.setDate(tomorrow.getDate() + 1);
+            const tomorrowStr = tomorrow.toISOString().split('T')[0];
+            
+            let daysDifferenceToday = Math.ceil((selectedDate.getTime() - baseDate.getTime()) / (1000 * 3600 * 24));
             let daysDifferenceYesterday = Math.ceil((yesterday.getTime() - baseDate.getTime()) / (1000 * 3600 * 24));
-
+            
             const year = selectedDate.getFullYear();
             const isLeapYear = (year % 4 === 0 && year % 100 !== 0) || (year % 400 === 0);
             const totalDaysInYear = isLeapYear ? 366 : 365.25;
@@ -267,7 +412,6 @@
             const calculatedDegreeYesterday = (daysDifferenceYesterday % totalDaysInYear) * (360 / totalDaysInYear);
             const roundedDegreeToday = parseFloat(calculatedDegreeToday.toFixed(2));
             
-            // Check for degree crossing
             let isSignificant = false;
             let crossedDegree = null;
             for (const deg of importantDegrees) {
@@ -276,11 +420,6 @@
                     crossedDegree = deg;
                     break;
                 }
-            }
-            
-            const degreesLoader = document.getElementById('degrees-loader');
-            if (degreesLoader) {
-                degreesLoader.remove();
             }
 
             let degreeContent = '';
@@ -292,95 +431,48 @@
 
                 if (isWeekend) {
                     let nextMarketDay = new Date(selectedDate);
-                    nextMarketDay.setDate(selectedDate.getDate() + (selectedDate.getDay() === 6 ? 2 : 1)); // Sunday is day 0, Saturday is day 6
+                    nextMarketDay.setDate(selectedDate.getDate() + (selectedDate.getDay() === 6 ? 2 : 1));
                     reversalDayFinal = nextMarketDay;
                     tradingDay = new Date(reversalDayFinal);
                     tradingDay.setDate(tradingDay.getDate() + 1);
 
-                    holidayInfo = `The day a significant degree is crossed, **${selectedDate.toDateString()}**, is a weekend. As per your strategy, the reversal day is shifted to the next market day, **${reversalDayFinal.toDateString()}**. The trading action will be on **${tradingDay.toDateString()}**.`;
+                    holidayInfo = `The day a significant degree is crossed, **${selectedDate.toDateString()}**, is a holiday. As per your strategy, the reversal day is shifted to the next market day, **${reversalDayFinal.toDateString()}**. The trading action will be on **${tradingDay.toDateString()}**.`;
                 } else {
                     tradingDay.setDate(tradingDay.getDate() + 1);
                     holidayInfo = `The Reversal Day is **${reversalDayFinal.toDateString()}**.`;
                 }
                 
-                degreeContent = `<p class="text-gray-400 font-medium mt-1">Calculated Degree: <span class="text-red-400 text-xl font-bold">${roundedDegreeToday}°</span></p>
-                   <div class="bg-red-900 bg-opacity-50 text-red-300 border border-red-800 rounded-lg p-4 mt-2">
-                       <p class="font-semibold text-lg">Alert: Significant Degree Crossing Found!</p>
-                       <p class="text-sm">${holidayInfo}</p>
-                       <p class="text-sm mt-1">On the reversal day, you must **mark the high and low** of the market.</p>
-                       <p class="text-sm mt-1">The strategy is to take a **reverse trade** on the trading day when either the high or the low from the Reversal Day is broken. Specifically, if the high breaks, take a **sell position**. If the low breaks, take a **buy position**.</p>
-                   </div>`;
+                degreeContent = `<p class="text-gray-400 font-medium">Calculated Degree: <span class="text-red-400 font-bold">${roundedDegreeToday}°</span></p>
+                   <p class="text-sm mt-2">${holidayInfo}</p>
+                   <p class="text-sm mt-1">**Strategy:** Mark the high and low of the market on the Reversal Day. Take a **reverse trade** on the trading day when either the high or the low is broken.</p>`;
             } else {
-                degreeContent = `<p class="text-gray-400 font-medium mt-1">Calculated Degree: <span class="text-green-400 text-xl font-bold">${roundedDegreeToday}°</span></p>
-                   <p class="text-sm mt-2 text-gray-300">This is not a key degree day. Use this information with your other strategies.</p>`;
+                degreeContent = `<p class="text-gray-400 font-medium">Calculated Degree: <span class="text-green-400 font-bold">${roundedDegreeToday}°</span></p>
+                   <p class="text-sm mt-2">No significant degree crossing found. Use this information with your other strategies.</p>`;
             }
-            strategyListDiv.appendChild(generateStrategySection('Planetary Degree Strategy', degreeContent));
+            if(strategyListDiv) strategyListDiv.appendChild(generateStrategyCard('Planetary Degree Strategy', degreeContent, `<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" /></svg>`, 'red'));
             
-            // --- Moon and Mars 0 Degree Conjunction Strategy ---
-            if (isMoonMarsConjunction(selectedDateStr)) {
-                const isWeekend = selectedDate.getDay() === 0 || selectedDate.getDay() === 6;
-                let reversalDayFinal = new Date(selectedDate);
-                let tradingDay = new Date(selectedDate);
-                let holidayInfo = '';
-
-                if (isWeekend) {
-                    let nextMarketDay = new Date(selectedDate);
-                    nextMarketDay.setDate(selectedDate.getDate() + (selectedDate.getDay() === 6 ? 2 : 1)); // Sunday is day 0, Saturday is day 6
-                    reversalDayFinal = nextMarketDay;
-                    tradingDay = new Date(reversalDayFinal);
-                    tradingDay.setDate(tradingDay.getDate() + 1);
-
-                    holidayInfo = `The Moon and Mars Conjunction is on a weekend. As per your strategy, the reversal day is shifted to the next market day, **${reversalDayFinal.toDateString()}**. The trading action will be on **${tradingDay.toDateString()}**.`;
-                } else {
-                    tradingDay.setDate(tradingDay.getDate() + 1);
-                    holidayInfo = `The Reversal Day is **${reversalDayFinal.toDateString()}**.`;
-                }
-
-                const moonMarsContent = `<p class="text-lg font-semibold">Moon and Mars are at 0° Conjunction.</p>
-                    <div class="bg-gray-900 bg-opacity-50 text-gray-300 border border-gray-800 rounded-lg p-4 mt-2">
-                        <p class="font-semibold text-lg">Trading Strategy</p>
-                        <p class="text-sm">${holidayInfo}</p>
-                        <p class="text-sm mt-1">On the reversal day, you must **mark the high and low** of the market.</p>
-                        <p class="text-sm mt-1">The strategy is to take a **reverse trade** on the trading day when either the high or the low from the Reversal Day is broken. Specifically, if the high breaks, take a **sell position**. If the low breaks, take a **buy position**.</p>
-                    </div>`;
-                strategyListDiv.appendChild(generateStrategySection('Moon & Mars 0° Conjunction', moonMarsContent));
-            }
-
-
             // --- Trayodashi Strategy Check ---
-            const selectedDayOfWeek = selectedDate.getDay();
             let isTrayodashiToday = isTrayodashi(selectedDateStr);
             let trayodashiTradingDate = null;
             let trayodashiHolidayMsg = '';
             
             if (isTrayodashiToday) {
-                const tomorrow = new Date(selectedDate);
-                tomorrow.setDate(tomorrow.getDate() + 1);
-                const tomorrowStr = tomorrow.toISOString().split('T')[0];
-
-                if (selectedDayOfWeek === 5) { // Friday
-                    if (isTrayodashi(tomorrowStr)) {
-                        trayodashiTradingDate = selectedDate;
-                        trayodashiHolidayMsg = `The Trayodashi Tithi occurs on the upcoming weekend. As per your strategy, the trading day is today, **${selectedDate.toDateString()}**, and the following Monday.`;
-                    } else {
-                        trayodashiTradingDate = selectedDate;
-                        trayodashiHolidayMsg = 'The Trayodashi Tithi occurs today, so trade as per strategy.';
-                    }
-                } else if (selectedDayOfWeek === 0) { // Sunday
-                    const friday = new Date(selectedDate);
-                    friday.setDate(friday.getDate() - 2);
-                    const monday = new Date(selectedDate);
-                    monday.setDate(monday.getDate() + 1);
-                    trayodashiTradingDate = friday;
-                    trayodashiHolidayMsg = `The Trayodashi Tithi occurs today and spanned the weekend. As per your strategy, the trading days are the preceding Friday, **${friday.toDateString()}**, and the following Monday, **${monday.toDateString()}**.`;
-                } else if (selectedDayOfWeek === 6) { // Saturday
-                    const friday = new Date(selectedDate);
-                    friday.setDate(friday.getDate() - 1);
-                    const monday = new Date(selectedDate);
-                    monday.setDate(monday.getDate() + 2);
-                    trayodashiTradingDate = friday;
-                    trayodashiHolidayMsg = `The Trayodashi Tithi occurs on a holiday. As per your strategy, the trading day is the preceding Friday, **${friday.toDateString()}**, and the following Monday, **${monday.toDateString()}**.`;
-                } else { // Weekday
+                const selectedDayOfWeek = selectedDate.getDay();
+                const isSaturday = selectedDayOfWeek === 6;
+                const isSunday = selectedDayOfWeek === 0;
+                
+                const nextDayIsHoliday = isTrayodashi(tomorrowStr) && (tomorrow.getDay() === 0 || tomorrow.getDay() === 6);
+                const prevDayIsHoliday = isTrayodashi(yesterdayStr) && (yesterday.getDay() === 0 || yesterday.getDay() === 6);
+                
+                if (isSaturday && nextDayIsHoliday) {
+                    trayodashiTradingDate = new Date(selectedDate);
+                    trayodashiTradingDate.setDate(selectedDate.getDate() - 1);
+                    trayodashiHolidayMsg = `Today is Trayodashi, but it is a weekend. The trading day is shifted to the preceding Friday, **${trayodashiTradingDate.toDateString()}**, and the following Monday.`;
+                } else if (isSunday && prevDayIsHoliday) {
+                    trayodashiTradingDate = new Date(selectedDate);
+                    trayodashiTradingDate.setDate(selectedDate.getDate() + 1);
+                    trayodashiHolidayMsg = `Today is Trayodashi, but it is a weekend. The trading day is shifted to the next market day, **${trayodashiTradingDate.toDateString()}**.`;
+                } else {
                     trayodashiTradingDate = selectedDate;
                     trayodashiHolidayMsg = 'The Trayodashi Tithi occurs today, so trade as per strategy.';
                 }
@@ -388,21 +480,13 @@
             
             if (trayodashiTradingDate) {
                 const trayodashiContent = `
-                    <p class="text-lg font-semibold">Today is a Trayodashi Tithi.</p>
-                    <div class="bg-purple-900 bg-opacity-50 text-purple-300 border border-purple-800 rounded-lg p-4 mt-2">
-                        <p class="font-semibold text-lg">Trading Strategy</p>
-                        <p class="text-sm">${trayodashiHolidayMsg}</p>
-                        <ul class="list-disc list-inside mt-2 text-sm">
-                            <li>**For a Buy Position:** Look for a "higher high" (two consecutive green candles). Take a buy position above the high of the second candle.</li>
-                            <li>**For a Sell Position:** Look for a "lower low" (two consecutive red candles). Take a sell position below the low of the second candle.</li>
-                            <li>**Stop Loss for Buy:** The low of the two consecutive red candles that formed a "lower low".</li>
-                            <li>**Stop Loss for Sell:** The high of the two consecutive green candles that formed a "higher high".</li>
-                        </ul>
-                    </div>
-                `;
-                strategyListDiv.appendChild(generateStrategySection('Trayodashi Strategy', trayodashiContent));
+                    <p class="text-sm">${trayodashiHolidayMsg}</p>
+                    <ul class="list-disc list-inside mt-2 text-sm space-y-1">
+                        <li>**For Buy:** Look for a "higher high" (two green candles). Buy above the high of the second candle.</li>
+                        <li>**For Sell:** Look for a "lower low" (two red candles). Sell below the low of the second candle.</li>
+                    </ul>`;
+                if(strategyListDiv) strategyListDiv.appendChild(generateStrategyCard('Trayodashi Strategy', trayodashiContent, `<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18v-1m-4 5h8m-4-12v-1" /></svg>`, 'purple'));
             }
-
 
             // --- Pournima Strategy Check ---
             const isPournimaToday = isPournima(selectedDateStr);
@@ -419,25 +503,20 @@
                     holidayInfo = `The Pournima Tithi occurs today, so trade as per strategy.`;
                 }
                 const pournimaContent = `
-                    <p class="text-lg font-semibold">Today is a Pournima (Full Moon) Tithi.</p>
-                    <div class="bg-blue-900 bg-opacity-50 text-blue-300 border border-blue-800 rounded-lg p-4 mt-2">
-                        <p class="font-semibold text-lg">Trading Strategy</p>
-                        <p class="text-sm">${holidayInfo}</p>
-                        <ul class="list-disc list-inside mt-2 text-sm">
-                            <li>**For a Buy Position:** Look for a "higher high" (two consecutive green candles). Take a buy position above the high of the second candle.</li>
-                            <li>**For a Sell Position:** Look for a "lower low" (two consecutive red candles). Take a sell position below the low of the second candle.</li>
-                            <li>**Stop Loss for Buy:** The low of the two consecutive red candles that formed a "lower low".</li>
-                            <li>**Stop Loss for Sell:** The high of the two consecutive green candles that formed a "higher high".</li>
-                        </ul>
-                    </div>
-                `;
-                strategyListDiv.appendChild(generateStrategySection('Pournima Strategy', pournimaContent));
+                    <p class="text-sm">${holidayInfo}</p>
+                    <ul class="list-disc list-inside mt-2 text-sm space-y-1">
+                        <li>**For Buy:** Look for a "higher high" (two consecutive green candles). Buy above the high of the second candle.</li>
+                        <li>**For Sell:** Look for a "lower low" (two consecutive red candles). Sell below the low of the second candle.</li>
+                    </ul>`;
+                if(strategyListDiv) strategyListDiv.appendChild(generateStrategyCard('Pournima Strategy', pournimaContent, `<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" /></svg>`, 'blue'));
             }
 
 
             // --- Amavasya Strategy Check ---
-            const isAmavasyaToday = isAmavasya(selectedDateStr);
-            if (isAmavasyaToday) {
+            const amavasyaDatesThisMonth = amavasyaDates.filter(d => d.startsWith(selectedDateStr.substring(0, 7)));
+            const isLastAmavasyaDay = amavasyaDatesThisMonth.length > 0 && amavasyaDatesThisMonth[amavasyaDatesThisMonth.length - 1] === selectedDateStr;
+            
+            if (isLastAmavasyaDay) {
                 const isWeekend = selectedDate.getDay() === 0 || selectedDate.getDay() === 6;
                 let tradingDay = new Date(selectedDate);
                 let holidayInfo = '';
@@ -450,19 +529,12 @@
                     holidayInfo = `The Amavasya Tithi occurs today, so trade as per strategy.`;
                 }
                 const amavasyaContent = `
-                    <p class="text-lg font-semibold">Today is an Amavasya (New Moon) Tithi.</p>
-                    <div class="bg-indigo-900 bg-opacity-50 text-indigo-300 border border-indigo-800 rounded-lg p-4 mt-2">
-                        <p class="font-semibold text-lg">Trading Strategy</p>
-                        <p class="text-sm">${holidayInfo}</p>
-                        <ul class="list-disc list-inside mt-2 text-sm">
-                            <li>**For a Buy Position:** Look for a "higher high" (two consecutive green candles). Take a buy position above the high of the second candle.</li>
-                            <li>**For a Sell Position:** Look for a "lower low" (two consecutive red candles). Take a sell position below the low of the second candle.</li>
-                            <li>**Stop Loss for Buy:** The low of the two consecutive red candles that formed a "lower low".</li>
-                            <li>**Stop Loss for Sell:** The high of the two consecutive green candles that formed a "higher high".</li>
-                        </ul>
-                    </div>
-                `;
-                strategyListDiv.appendChild(generateStrategySection('Amavasya Strategy', amavasyaContent));
+                    <p class="text-sm">${holidayInfo}</p>
+                    <ul class="list-disc list-inside mt-2 text-sm space-y-1">
+                        <li>**For Buy:** Look for a "higher high" (two consecutive green candles). Buy above the high of the second candle.</li>
+                        <li>**For Sell:** Look for a "lower low" (two consecutive red candles). Sell below the low of the second candle.</li>
+                    </ul>`;
+                if(strategyListDiv) strategyListDiv.appendChild(generateStrategyCard('Amavasya Strategy', amavasyaContent, `<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" /></svg>`, 'indigo'));
             }
 
 
@@ -473,7 +545,7 @@
                 contents: [{ parts: [{ text: sentimentPrompt }] }],
                 tools: [{ "google_search": {} }],
             };
-
+            
             try {
                 const response = await fetchWithExponentialBackoff(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`, {
                     method: 'POST',
@@ -483,38 +555,160 @@
                 
                 const result = await response.json();
                 const text = result.candidates?.[0]?.content?.parts?.[0]?.text;
-                const sentimentLoader = document.getElementById('sentiment-loader');
-                if (sentimentLoader) {
-                    sentimentLoader.remove();
-                }
                 if (text) {
-                    strategyListDiv.appendChild(generateStrategySection('Market Sentiment Analysis', text));
+                    if(strategyListDiv) strategyListDiv.appendChild(generateStrategyCard('Market Sentiment Analysis', text, `<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>`, 'emerald'));
                 } else {
                     handleApiError('sentiment-loader', 'Could not retrieve market sentiment analysis.');
                 }
             } catch (error) {
-                const sentimentLoader = document.getElementById('sentiment-loader');
-                if (sentimentLoader) {
-                    sentimentLoader.remove();
-                }
                 handleApiError('sentiment-loader', `Failed to retrieve market sentiment: ${error.message}`);
             }
+
+            if(loadingSpinner) loadingSpinner.classList.add('hidden');
+            if(resultsDiv) resultsDiv.classList.remove('hidden');
+        };
+
+        const generateCalendar = (month, year) => {
+            calendarGrid.innerHTML = '';
+            const firstDay = new Date(year, month, 1).getDay();
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+            currentMonthYearEl.textContent = new Date(year, month).toLocaleString('default', { month: 'long', year: 'numeric' });
+
+            for (let i = 0; i < firstDay; i++) {
+                const emptyCell = document.createElement('div');
+                calendarGrid.appendChild(emptyCell);
+            }
+
+            for (let day = 1; day <= daysInMonth; day++) {
+                const dateCell = document.createElement('div');
+                dateCell.textContent = day;
+                
+                const date = new Date(year, month, day);
+                const dateString = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                dateCell.dataset.date = dateString;
+
+                let classesToAdd = ['date-cell'];
+                
+                if (isSignificantDegreeDay(date)) {
+                    classesToAdd.push('reversal');
+                }
+                if (isPournima(dateString)) {
+                    classesToAdd.push('pournima');
+                }
+                if (isTrayodashi(dateString)) {
+                    classesToAdd.push('trayodashi');
+                }
+                if (isAmavasya(dateString)) {
+                    classesToAdd.push('amavasya');
+                }
+                if (day === today.getDate() && month === today.getMonth() && year === today.getFullYear()) {
+                    classesToAdd.push('today');
+                }
+                
+                dateCell.className = classesToAdd.join(' ');
+                
+                dateCell.addEventListener('click', () => {
+                    document.querySelectorAll('.date-cell').forEach(cell => cell.classList.remove('active'));
+                    dateCell.classList.add('active');
+                    dailyCompassView.style.display = 'block';
+                    upcomingEventsView.style.display = 'none';
+                    dailyCompassTab.classList.add('active');
+                    upcomingEventsTab.classList.remove('active');
+                    getStrategies(dateString);
+                });
+                calendarGrid.appendChild(dateCell);
+            }
+        };
+
+        prevMonthBtn.addEventListener('click', () => {
+            currentMonth--;
+            if (currentMonth < 0) {
+                currentMonth = 11;
+                currentYear--;
+            }
+            generateCalendar(currentMonth, currentYear);
         });
+
+        nextMonthBtn.addEventListener('click', () => {
+            currentMonth++;
+            if (currentMonth > 11) {
+                currentMonth = 0;
+                currentYear++;
+            }
+            generateCalendar(currentMonth, currentYear);
+        });
+        
+        generateCalendar(currentMonth, currentYear);
+        
+        dailyCompassTab.addEventListener('click', () => {
+            dailyCompassTab.classList.add('active');
+            upcomingEventsTab.classList.remove('active');
+            dailyCompassView.style.display = 'block';
+            upcomingEventsView.style.display = 'none';
+            resultsDiv.classList.add('hidden');
+        });
+
+        upcomingEventsTab.addEventListener('click', () => {
+            upcomingEventsTab.classList.add('active');
+            dailyCompassTab.classList.remove('active');
+            dailyCompassView.style.display = 'none';
+            upcomingEventsView.style.display = 'block';
+            getUpcomingEvents();
+        });
+
+        const getUpcomingEvents = async () => {
+            upcomingLoadingSpinner.classList.remove('hidden');
+            upcomingListDiv.innerHTML = '';
+            
+            const tomorrow = new Date();
+            tomorrow.setDate(tomorrow.getDate() + 1);
+
+            let hasEvents = false;
+
+            for (let i = 0; i < 30; i++) {
+                const currentDate = new Date(tomorrow);
+                currentDate.setDate(tomorrow.getDate() + i);
+                const dateStr = currentDate.toISOString().split('T')[0];
+                let events = [];
+
+                if (isSignificantDegreeDay(currentDate)) {
+                    events.push({ name: 'Planetary Degree Reversal', color: 'red', strategy: 'Mark high/low on this day and take a reverse trade on the next market day.' });
+                }
+
+                if (isTrayodashi(dateStr)) {
+                    events.push({ name: 'Trayodashi Tithi', color: 'purple', strategy: 'Trade for higher high/lower low patterns on this day. Stop-loss is the opposing pattern.' });
+                }
+
+                if (isPournima(dateStr)) {
+                    events.push({ name: 'Pournima Tithi', color: 'blue', strategy: 'Trade for higher high/lower low patterns on this day. Stop-loss is the opposing pattern.' });
+                }
+
+                if (isAmavasya(dateStr)) {
+                    events.push({ name: 'Amavasya Tithi', color: 'indigo', strategy: 'Trade for higher high/lower low patterns on this day. Stop-loss is the opposing pattern.' });
+                }
+                
+                if (events.length > 0) {
+                    hasEvents = true;
+                    const eventCard = document.createElement('div');
+                    eventCard.className = 'p-4 rounded-lg bg-gray-700 shadow-md mb-4';
+                    eventCard.innerHTML = `<h4 class="text-xl font-bold text-white mb-2">${currentDate.toDateString()}</h4>`;
+                    
+                    events.forEach(event => {
+                        const miniCard = generateMiniStrategyCard(event.name, event.strategy, event.color);
+                        eventCard.appendChild(miniCard);
+                    });
+                    upcomingListDiv.appendChild(eventCard);
+                }
+            }
+
+            if (!hasEvents) {
+                upcomingListDiv.innerHTML = '<p class="text-center text-gray-400">No significant events in the next 30 days.</p>';
+            }
+
+            upcomingLoadingSpinner.classList.add('hidden');
+        };
     });
 </script>
-<script>
-    if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-            navigator.serviceWorker.register('/service-worker.js')
-                .then(registration => {
-                    console.log('Service Worker registered with scope:', registration.scope);
-                })
-                .catch(error => {
-                    console.log('Service Worker registration failed:', error);
-                });
-        });
-    }
-</script>
+
 </body>
 </html>
-
