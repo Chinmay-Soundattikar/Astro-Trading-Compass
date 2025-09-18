@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Astro Trading Compass</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #111827;
+            color: #E5E7EB;
+        }
+        .container {
+            max-width: 900px;
+            margin: auto;
+            padding: 2rem;
+        }
+        .gradient-text {
+            background-image: linear-gradient(to right, #6EE7B7, #3B82F6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .spinner {
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-top: 4px solid #fff;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 100;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.4);
+            justify-content: center;
+            align-items: center;
+        }
+        .modal-content {
+            background-color: #1f2937;
+            margin: auto;
+            padding: 20px;
+            border: 1px solid #888;
+            border-radius: 1rem;
+            width: 80%;
+            max-width: 500px;
+            position: relative;
+        }
+        .close-btn {
+            color: #aaa;
+            position: absolute;
+            top: 10px;
+            right: 15px;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body class="bg-gray-900 flex items-center justify-center min-h-screen p-4 sm:p-8">
+
+    <!-- Modal for messages -->
+    <div id="alert-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-btn" onclick="document.getElementById('alert-modal').style.display='none'">&times;</span>
+            <p id="alert-message" class="text-white text-center"></p>
+        </div>
+    </div>
+
+<div class="container bg-gray-800 rounded-2xl shadow-2xl p-6 sm:p-10 space-y-8">
+    
+    <!-- Header Section -->
+    <header class="text-center space-y-2">
+        <h1 class="text-4xl sm:text-5xl font-extrabold gradient-text">Astro Trading Compass</h1>
+        <p class="text-gray-400 text-lg">Daily Market Strategies based on Celestial Events</p>
+    </header>
+
+    <!-- App Description -->
+    <div class="text-center text-gray-300">
+        <p>Select a date to receive real-time strategies and market analysis based on your astrological trading plan. 🪐</p>
+    </div>
+
+    <!-- Input and Result Section -->
+    <main class="space-y-6">
+        <div class="flex flex-col sm:flex-row items-center justify-center space-y-4 sm:space-y-0 sm:space-x-4">
+            <input type="date" id="date-input" class="bg-gray-700 text-gray-300 rounded-xl p-3 sm:w-1/2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <button id="calculate-btn" class="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-xl shadow-lg transition duration-300 ease-in-out transform hover:scale-105">
+                Get Strategies
+            </button>
+        </div>
+        
+        <div id="results" class="bg-gray-700 rounded-xl p-6 sm:p-8 space-y-4 hidden">
+            <h2 class="text-2xl font-semibold text-white">Analysis for <span id="display-date"></span></h2>
+            
+            <div id="strategy-list" class="space-y-4">
+                <!-- Strategies will be dynamically generated here -->
+            </div>
+
+            <div id="important-degrees-list" class="space-y-2 text-gray-400">
+                <p class="font-semibold text-white">Important Astrological Degrees:</p>
+                <!-- Important degrees will be populated here by JS -->
+            </div>
+        </div>
+    </main>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const calculateBtn = document.getElementById('calculate-btn');
+        const dateInput = document.getElementById('date-input');
+        const resultsDiv = document.getElementById('results');
+        const displayDateSpan = document.getElementById('display-date');
+        const strategyListDiv = document.getElementById('strategy-list');
+        const importantDegreesList = document.getElementById('important-degrees-list');
+        const alertModal = document.getElementById('alert-modal');
+        const alertMessage = document.getElementById('alert-message');
+
+        const showMessage = (message) => {
+            alertMessage.textContent = message;
+            alertModal.style.display = 'flex';
+        };
+
+        const importantDegrees = [
+            11.25, 191.25, 22.5, 202.5, 33.75, 213.75, 45, 225, 56.25, 236.25, 60, 240, 
+            67.5, 247.5, 78.75, 258.75, 90, 270, 101.25, 281.25, 112.5, 292.15, 120, 
+            300, 123.75, 303.75, 135, 315, 146.25, 326.25, 157.5, 337.5, 168.75, 348.75, 
+            180, 360
+        ];
+        
+        importantDegrees.forEach(deg => {
+            const span = document.createElement('span');
+            span.textContent = `${deg}° `;
+            span.className = 'inline-block px-2 py-1 bg-gray-600 rounded-full text-xs text-gray-300 m-1';
+            importantDegreesList.appendChild(span);
+        });
+
+        const baseDate = new Date('2025-03-20');
+        const apiKey = "AIzaSyAiRHTLuvHK6gsSdQQCHT4HkkmeeF942UY"; 
+
+        const fetchWithExponentialBackoff = async (url, options, retries = 5, delay = 1000) => {
+            try {
+                const response = await fetch(url, options);
+                if (!response.ok) {
+                    const errorBody = await response.text();
+                    console.error("API Error Response:", errorBody);
+                    if (response.status === 429 && retries > 0) {
+                        await new Promise(res => setTimeout(res, delay));
+                        return fetchWithExponentialBackoff(url, options, retries - 1, delay * 2);
+                    }
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response;
+            } catch (error) {
+                console.error("Network or Fetch Error:", error);
+                if (retries > 0) {
+                    await new Promise(res => setTimeout(res, delay));
+                    return fetchWithExponentialBackoff(url, options, retries - 1, delay * 2);
+                }
+                throw error;
+            }
+        };
+
+        const generateStrategySection = (title, content) => {
+            const div = document.createElement('div');
+            div.className = 'bg-gray-800 rounded-lg p-4';
+            div.innerHTML = `
+                <h3 class="text-xl font-semibold text-white">${title}</h3>
+                <p class="text-gray-300 text-sm mt-2">${content}</p>
+            `;
+            return div;
+        };
+
+        const handleApiError = (elementId, message) => {
+            const element = document.getElementById(elementId);
+            if (element) {
+                element.innerHTML = `<p class="text-red-400">${message}</p>`;
+            }
+        };
+        
+        const moonMarsConjunctionDates = ['2025-02-09', '2025-06-29', '2025-08-26'];
+
+        const isMoonMarsConjunction = (dateStr) => {
+            return moonMarsConjunctionDates.includes(dateStr);
+        };
+
+        const trayodashiDates = [
+            '2025-01-11', '2025-01-26', '2025-02-09', '2025-02-25', '2025-03-11', '2025-03-27',
+            '2025-04-09', '2025-04-25', '2025-05-09', '2025-05-24', '2025-06-08', '2025-06-23',
+            '2025-07-07', '2025-07-22', '2025-08-06', '2025-08-20', '2025-09-05', '2025-09-18', '2025-09-19',
+            '2025-10-04', '2025-10-05', '2025-10-18', '2025-11-03', '2025-11-17', '2025-12-02', '2025-12-16'
+        ];
+
+        const isTrayodashi = (dateStr) => {
+            return trayodashiDates.includes(dateStr);
+        };
+
+        const pournimaDates = [
+            '2025-01-13', '2025-02-12', '2025-03-13', '2025-04-12', '2025-05-11', '2025-06-10',
+            '2025-07-10', '2025-08-08', '2025-09-07', '2025-10-06', '2025-11-04', '2025-12-04'
+        ];
+
+        const isPournima = (dateStr) => {
+            return pournimaDates.includes(dateStr);
+        };
+
+        const amavasyaDates = [
+            '2025-01-28', '2025-02-27', '2025-03-28', '2025-04-26', '2025-05-26', '2025-06-25',
+            '2025-07-24', '2025-08-23', '2025-09-21', '2025-10-21', '2025-11-20', '2025-12-20'
+        ];
+        
+        const isAmavasya = (dateStr) => {
+            return amavasyaDates.includes(dateStr);
+        };
+
+        calculateBtn.addEventListener('click', async () => {
+            const selectedDateStr = dateInput.value;
+            
+            if (!selectedDateStr) {
+                showMessage('Please select a date.');
+                return;
+            }
+
+            const selectedDate = new Date(selectedDateStr);
+            const displayDate = new Date(selectedDate);
+            displayDateSpan.textContent = displayDate.toDateString();
+            strategyListDiv.innerHTML = '';
+            resultsDiv.classList.remove('hidden');
+
+            // Show loading spinners for all sections
+            strategyListDiv.innerHTML = `
+                <div id="degrees-loader" class="flex justify-center items-center p-4">
+                    <div class="spinner"></div>
+                    <span class="ml-2">Calculating degrees...</span>
+                </div>
+                <div id="astro-loader" class="flex justify-center items-center p-4">
+                    <div class="spinner"></div>
+                    <span class="ml-2">Analyzing celestial events...</span>
+                </div>
+                <div id="sentiment-loader" class="flex justify-center items-center p-4">
+                    <div class="spinner"></div>
+                    <span class="ml-2">Analyzing market sentiment...</span>
+                </div>
+            `;
+            
+            // Calculate today's degree and yesterday's degree to check for crossing
+            let daysDifferenceToday = Math.ceil((selectedDate.getTime() - baseDate.getTime()) / (1000 * 3600 * 24));
+            const yesterday = new Date(selectedDate);
+            yesterday.setDate(yesterday.getDate() - 1);
+            let daysDifferenceYesterday = Math.ceil((yesterday.getTime() - baseDate.getTime()) / (1000 * 3600 * 24));
+
+            const year = selectedDate.getFullYear();
+            const isLeapYear = (year % 4 === 0 && year % 100 !== 0) || (year % 400 === 0);
+            const totalDaysInYear = isLeapYear ? 366 : 365.25;
+            
+            const calculatedDegreeToday = (daysDifferenceToday % totalDaysInYear) * (360 / totalDaysInYear);
+            const calculatedDegreeYesterday = (daysDifferenceYesterday % totalDaysInYear) * (360 / totalDaysInYear);
+            const roundedDegreeToday = parseFloat(calculatedDegreeToday.toFixed(2));
+            
+            // Check for degree crossing
+            let isSignificant = false;
+            let crossedDegree = null;
+            for (const deg of importantDegrees) {
+                if ((calculatedDegreeYesterday < deg && calculatedDegreeToday >= deg) || (calculatedDegreeYesterday > deg && calculatedDegreeToday <= deg)) {
+                    isSignificant = true;
+                    crossedDegree = deg;
+                    break;
+                }
+            }
+            
+            const degreesLoader = document.getElementById('degrees-loader');
+            if (degreesLoader) {
+                degreesLoader.remove();
+            }
+
+            let degreeContent = '';
+            if (isSignificant) {
+                const isWeekend = selectedDate.getDay() === 0 || selectedDate.getDay() === 6;
+                let reversalDayFinal = new Date(selectedDate);
+                let tradingDay = new Date(selectedDate);
+                let holidayInfo = '';
+
+                if (isWeekend) {
+                    let nextMarketDay = new Date(selectedDate);
+                    nextMarketDay.setDate(selectedDate.getDate() + (selectedDate.getDay() === 6 ? 2 : 1)); // Sunday is day 0, Saturday is day 6
+                    reversalDayFinal = nextMarketDay;
+                    tradingDay = new Date(reversalDayFinal);
+                    tradingDay.setDate(tradingDay.getDate() + 1);
+
+                    holidayInfo = `The day a significant degree is crossed, **${selectedDate.toDateString()}**, is a weekend. As per your strategy, the reversal day is shifted to the next market day, **${reversalDayFinal.toDateString()}**. The trading action will be on **${tradingDay.toDateString()}**.`;
+                } else {
+                    tradingDay.setDate(tradingDay.getDate() + 1);
+                    holidayInfo = `The Reversal Day is **${reversalDayFinal.toDateString()}**.`;
+                }
+                
+                degreeContent = `<p class="text-gray-400 font-medium mt-1">Calculated Degree: <span class="text-red-400 text-xl font-bold">${roundedDegreeToday}°</span></p>
+                   <div class="bg-red-900 bg-opacity-50 text-red-300 border border-red-800 rounded-lg p-4 mt-2">
+                       <p class="font-semibold text-lg">Alert: Significant Degree Crossing Found!</p>
+                       <p class="text-sm">${holidayInfo}</p>
+                       <p class="text-sm mt-1">On the reversal day, you must **mark the high and low** of the market.</p>
+                       <p class="text-sm mt-1">The strategy is to take a **reverse trade** on the trading day when either the high or the low from the Reversal Day is broken. Specifically, if the high breaks, take a **sell position**. If the low breaks, take a **buy position**.</p>
+                   </div>`;
+            } else {
+                degreeContent = `<p class="text-gray-400 font-medium mt-1">Calculated Degree: <span class="text-green-400 text-xl font-bold">${roundedDegreeToday}°</span></p>
+                   <p class="text-sm mt-2 text-gray-300">This is not a key degree day. Use this information with your other strategies.</p>`;
+            }
+            strategyListDiv.appendChild(generateStrategySection('Planetary Degree Strategy', degreeContent));
+            
+            // --- Moon and Mars 0 Degree Conjunction Strategy ---
+            if (isMoonMarsConjunction(selectedDateStr)) {
+                const isWeekend = selectedDate.getDay() === 0 || selectedDate.getDay() === 6;
+                let reversalDayFinal = new Date(selectedDate);
+                let tradingDay = new Date(selectedDate);
+                let holidayInfo = '';
+
+                if (isWeekend) {
+                    let nextMarketDay = new Date(selectedDate);
+                    nextMarketDay.setDate(selectedDate.getDate() + (selectedDate.getDay() === 6 ? 2 : 1)); // Sunday is day 0, Saturday is day 6
+                    reversalDayFinal = nextMarketDay;
+                    tradingDay = new Date(reversalDayFinal);
+                    tradingDay.setDate(tradingDay.getDate() + 1);
+
+                    holidayInfo = `The Moon and Mars Conjunction is on a weekend. As per your strategy, the reversal day is shifted to the next market day, **${reversalDayFinal.toDateString()}**. The trading action will be on **${tradingDay.toDateString()}**.`;
+                } else {
+                    tradingDay.setDate(tradingDay.getDate() + 1);
+                    holidayInfo = `The Reversal Day is **${reversalDayFinal.toDateString()}**.`;
+                }
+
+                const moonMarsContent = `<p class="text-lg font-semibold">Moon and Mars are at 0° Conjunction.</p>
+                    <div class="bg-gray-900 bg-opacity-50 text-gray-300 border border-gray-800 rounded-lg p-4 mt-2">
+                        <p class="font-semibold text-lg">Trading Strategy</p>
+                        <p class="text-sm">${holidayInfo}</p>
+                        <p class="text-sm mt-1">On the reversal day, you must **mark the high and low** of the market.</p>
+                        <p class="text-sm mt-1">The strategy is to take a **reverse trade** on the trading day when either the high or the low from the Reversal Day is broken. Specifically, if the high breaks, take a **sell position**. If the low breaks, take a **buy position**.</p>
+                    </div>`;
+                strategyListDiv.appendChild(generateStrategySection('Moon & Mars 0° Conjunction', moonMarsContent));
+            }
+
+
+            // --- Trayodashi Strategy Check ---
+            const selectedDayOfWeek = selectedDate.getDay();
+            let isTrayodashiToday = isTrayodashi(selectedDateStr);
+            let trayodashiTradingDate = null;
+            let trayodashiHolidayMsg = '';
+            
+            if (isTrayodashiToday) {
+                const tomorrow = new Date(selectedDate);
+                tomorrow.setDate(tomorrow.getDate() + 1);
+                const tomorrowStr = tomorrow.toISOString().split('T')[0];
+
+                if (selectedDayOfWeek === 5) { // Friday
+                    if (isTrayodashi(tomorrowStr)) {
+                        trayodashiTradingDate = selectedDate;
+                        trayodashiHolidayMsg = `The Trayodashi Tithi occurs on the upcoming weekend. As per your strategy, the trading day is today, **${selectedDate.toDateString()}**, and the following Monday.`;
+                    } else {
+                        trayodashiTradingDate = selectedDate;
+                        trayodashiHolidayMsg = 'The Trayodashi Tithi occurs today, so trade as per strategy.';
+                    }
+                } else if (selectedDayOfWeek === 0) { // Sunday
+                    const friday = new Date(selectedDate);
+                    friday.setDate(friday.getDate() - 2);
+                    const monday = new Date(selectedDate);
+                    monday.setDate(monday.getDate() + 1);
+                    trayodashiTradingDate = friday;
+                    trayodashiHolidayMsg = `The Trayodashi Tithi occurs today and spanned the weekend. As per your strategy, the trading days are the preceding Friday, **${friday.toDateString()}**, and the following Monday, **${monday.toDateString()}**.`;
+                } else if (selectedDayOfWeek === 6) { // Saturday
+                    const friday = new Date(selectedDate);
+                    friday.setDate(friday.getDate() - 1);
+                    const monday = new Date(selectedDate);
+                    monday.setDate(monday.getDate() + 2);
+                    trayodashiTradingDate = friday;
+                    trayodashiHolidayMsg = `The Trayodashi Tithi occurs on a holiday. As per your strategy, the trading day is the preceding Friday, **${friday.toDateString()}**, and the following Monday, **${monday.toDateString()}**.`;
+                } else { // Weekday
+                    trayodashiTradingDate = selectedDate;
+                    trayodashiHolidayMsg = 'The Trayodashi Tithi occurs today, so trade as per strategy.';
+                }
+            }
+            
+            if (trayodashiTradingDate) {
+                const trayodashiContent = `
+                    <p class="text-lg font-semibold">Today is a Trayodashi Tithi.</p>
+                    <div class="bg-purple-900 bg-opacity-50 text-purple-300 border border-purple-800 rounded-lg p-4 mt-2">
+                        <p class="font-semibold text-lg">Trading Strategy</p>
+                        <p class="text-sm">${trayodashiHolidayMsg}</p>
+                        <ul class="list-disc list-inside mt-2 text-sm">
+                            <li>**For a Buy Position:** Look for a "higher high" (two consecutive green candles). Take a buy position above the high of the second candle.</li>
+                            <li>**For a Sell Position:** Look for a "lower low" (two consecutive red candles). Take a sell position below the low of the second candle.</li>
+                            <li>**Stop Loss for Buy:** The low of the two consecutive red candles that formed a "lower low".</li>
+                            <li>**Stop Loss for Sell:** The high of the two consecutive green candles that formed a "higher high".</li>
+                        </ul>
+                    </div>
+                `;
+                strategyListDiv.appendChild(generateStrategySection('Trayodashi Strategy', trayodashiContent));
+            }
+
+
+            // --- Pournima Strategy Check ---
+            const isPournimaToday = isPournima(selectedDateStr);
+            if (isPournimaToday) {
+                const isWeekend = selectedDate.getDay() === 0 || selectedDate.getDay() === 6;
+                let tradingDay = new Date(selectedDate);
+                let holidayInfo = '';
+                if (isWeekend) {
+                    const nextMarketDay = new Date(selectedDate);
+                    nextMarketDay.setDate(selectedDate.getDate() + (selectedDate.getDay() === 6 ? 2 : 1));
+                    tradingDay = nextMarketDay;
+                    holidayInfo = `Pournima is on a weekend. As per your strategy, you should trade on the next available market day, which is **${tradingDay.toDateString()}**.`;
+                } else {
+                    holidayInfo = `The Pournima Tithi occurs today, so trade as per strategy.`;
+                }
+                const pournimaContent = `
+                    <p class="text-lg font-semibold">Today is a Pournima (Full Moon) Tithi.</p>
+                    <div class="bg-blue-900 bg-opacity-50 text-blue-300 border border-blue-800 rounded-lg p-4 mt-2">
+                        <p class="font-semibold text-lg">Trading Strategy</p>
+                        <p class="text-sm">${holidayInfo}</p>
+                        <ul class="list-disc list-inside mt-2 text-sm">
+                            <li>**For a Buy Position:** Look for a "higher high" (two consecutive green candles). Take a buy position above the high of the second candle.</li>
+                            <li>**For a Sell Position:** Look for a "lower low" (two consecutive red candles). Take a sell position below the low of the second candle.</li>
+                            <li>**Stop Loss for Buy:** The low of the two consecutive red candles that formed a "lower low".</li>
+                            <li>**Stop Loss for Sell:** The high of the two consecutive green candles that formed a "higher high".</li>
+                        </ul>
+                    </div>
+                `;
+                strategyListDiv.appendChild(generateStrategySection('Pournima Strategy', pournimaContent));
+            }
+
+
+            // --- Amavasya Strategy Check ---
+            const isAmavasyaToday = isAmavasya(selectedDateStr);
+            if (isAmavasyaToday) {
+                const isWeekend = selectedDate.getDay() === 0 || selectedDate.getDay() === 6;
+                let tradingDay = new Date(selectedDate);
+                let holidayInfo = '';
+                if (isWeekend) {
+                    let nextMarketDay = new Date(selectedDate);
+                    nextMarketDay.setDate(selectedDate.getDate() + (selectedDate.getDay() === 6 ? 2 : 1));
+                    tradingDay = nextMarketDay;
+                    holidayInfo = `Amavasya is on a weekend. As per your strategy, you should trade on the next available market day, which is **${tradingDay.toDateString()}**.`;
+                } else {
+                    holidayInfo = `The Amavasya Tithi occurs today, so trade as per strategy.`;
+                }
+                const amavasyaContent = `
+                    <p class="text-lg font-semibold">Today is an Amavasya (New Moon) Tithi.</p>
+                    <div class="bg-indigo-900 bg-opacity-50 text-indigo-300 border border-indigo-800 rounded-lg p-4 mt-2">
+                        <p class="font-semibold text-lg">Trading Strategy</p>
+                        <p class="text-sm">${holidayInfo}</p>
+                        <ul class="list-disc list-inside mt-2 text-sm">
+                            <li>**For a Buy Position:** Look for a "higher high" (two consecutive green candles). Take a buy position above the high of the second candle.</li>
+                            <li>**For a Sell Position:** Look for a "lower low" (two consecutive red candles). Take a sell position below the low of the second candle.</li>
+                            <li>**Stop Loss for Buy:** The low of the two consecutive red candles that formed a "lower low".</li>
+                            <li>**Stop Loss for Sell:** The high of the two consecutive green candles that formed a "higher high".</li>
+                        </ul>
+                    </div>
+                `;
+                strategyListDiv.appendChild(generateStrategySection('Amavasya Strategy', amavasyaContent));
+            }
+
+
+            // --- Gemini API Call for Market Sentiment Analysis ---
+            const sentimentPrompt = `For the date ${selectedDateStr}, provide a brief, high-level summary of the market sentiment based on financial news. Focus on whether the general sentiment was positive, negative, or neutral, and mention any key events or trends that influenced it. Keep the response to 2-3 sentences.`;
+
+            const sentimentPayload = {
+                contents: [{ parts: [{ text: sentimentPrompt }] }],
+                tools: [{ "google_search": {} }],
+            };
+
+            try {
+                const response = await fetchWithExponentialBackoff(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(sentimentPayload)
+                });
+                
+                const result = await response.json();
+                const text = result.candidates?.[0]?.content?.parts?.[0]?.text;
+                const sentimentLoader = document.getElementById('sentiment-loader');
+                if (sentimentLoader) {
+                    sentimentLoader.remove();
+                }
+                if (text) {
+                    strategyListDiv.appendChild(generateStrategySection('Market Sentiment Analysis', text));
+                } else {
+                    handleApiError('sentiment-loader', 'Could not retrieve market sentiment analysis.');
+                }
+            } catch (error) {
+                const sentimentLoader = document.getElementById('sentiment-loader');
+                if (sentimentLoader) {
+                    sentimentLoader.remove();
+                }
+                handleApiError('sentiment-loader', `Failed to retrieve market sentiment: ${error.message}`);
+            }
+        });
+    });
+</script>
+
+</body>
+</html>
